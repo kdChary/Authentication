@@ -31,12 +31,15 @@ initializeDbAndServer();
 
 app.post("/register", async (request, response) => {
   const { username, name, password, gender, location } = request.body;
-  const searchUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
+  const searchUserQuery = `SELECT username,password FROM user WHERE username = '${username}';`;
   const userExisting = await db.get(searchUserQuery);
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  if (userExisting === undefined) {
+  if (userExisting !== undefined) {
+    response.status(400);
+    response.send("User already exists");
+  } else {
     if (password.length > 5) {
       const createUserQuery = `INSERT INTO 
             user(username,name,password,gender,location)
@@ -49,9 +52,30 @@ app.post("/register", async (request, response) => {
       response.status(400);
       response.send("Password is too short");
     }
-  } else {
+  }
+});
+
+// API 2 Login validation..
+
+app.post("/login", async (request, response) => {
+  const { username, password } = request.body;
+  const findUserQuery = `SELECT *
+        FROM user WHERE username = '${username}';`;
+  const dbUser = await db.get(findUserQuery);
+
+  if (dbUser === undefined) {
     response.status(400);
-    response.send("User already exists");
+    response.send("Invalid user");
+  } else {
+    const isPasswordSame = await bcrypt.compare(password, dbUser.password);
+
+    if (isPasswordSame) {
+      response.status(200);
+      response.send("Login success!");
+    } else {
+      response.status(400);
+      response.send("Invalid password");
+    }
   }
 });
 

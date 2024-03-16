@@ -17,7 +17,7 @@ const initializeDbAndServer = async () => {
     });
 
     app.listen(3000, () => {
-      console.log(`Server running at "https://localhost:3000/"`);
+      console.log(`Server running at "http://localhost:3000/"`);
     });
   } catch (error) {
     console.log(`DB Error: ${error.message}`);
@@ -32,13 +32,16 @@ initializeDbAndServer();
 app.post("/register", async (request, response) => {
   const { username, name, password, gender, location } = request.body;
   const searchUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
-  const userExisting = await db.get("searchUserQuery");
+  const userExisting = await db.get(searchUserQuery);
+
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   if (userExisting === undefined) {
     if (password.length > 5) {
       const createUserQuery = `INSERT INTO 
             user(username,name,password,gender,location)
-            VALUES('${username}', '${name}', '${password}', '${gender}', '${location}',);`;
+            VALUES('${username}', '${name}', '${hashedPassword}', '${gender}', '${location}');`;
+      const createUser = await db.run(createUserQuery);
 
       response.status(200);
       response.send("User created successfully");

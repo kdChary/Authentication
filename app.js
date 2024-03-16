@@ -28,10 +28,10 @@ const initializeDbAndServer = async () => {
 initializeDbAndServer();
 
 // API 1 Registering a new user
-
+/*
 app.post("/register", async (request, response) => {
   const { username, name, password, gender, location } = request.body;
-  const searchUserQuery = `SELECT username,password FROM user WHERE username = '${username}';`;
+  const searchUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
   const userExisting = await db.get(searchUserQuery);
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -41,7 +41,7 @@ app.post("/register", async (request, response) => {
     response.send("User already exists");
   } else {
     if (password.length > 5) {
-      const createUserQuery = `INSERT INTO 
+      const createUserQuery = `INSERT INTO
             user(username,name,password,gender,location)
             VALUES('${username}', '${name}', '${hashedPassword}', '${gender}', '${location}');`;
       const createUser = await db.run(createUserQuery);
@@ -52,6 +52,49 @@ app.post("/register", async (request, response) => {
       response.status(400);
       response.send("Password is too short");
     }
+  }
+});*/
+
+// TODO: even after copy pasting the snippet from previous Discussion same test-case failed !!!.
+
+app.post("/register", async (request, response) => {
+  let { username, name, password, gender, location } = request.body; //Destructuring the data from the API call
+
+  let hashedPassword = await bcrypt.hash(password, 10); //Hashing the given password
+
+  let checkTheUsername = `
+            SELECT *
+            FROM user
+            WHERE username = '${username}';`;
+  let userData = await db.get(checkTheUsername); //Getting the user details from the database
+  if (userData === undefined) {
+    //checks the condition if user is already registered or not in the database
+    /*If userData is not present in the database then this condition executes*/
+    let postNewUserQuery = `
+            INSERT INTO
+            user (username,name,password,gender,location)
+            VALUES (
+                '${username}',
+                '${name}',
+                '${hashedPassword}',
+                '${gender}',
+                '${location}'
+            );`;
+    if (password.length < 5) {
+      //checking the length of the password
+      response.status(400);
+      response.send("Password is too short");
+    } else {
+      /*If password length is greater than 5 then this block will execute*/
+
+      let newUserDetails = await db.run(postNewUserQuery); //Updating data to the database
+      response.status(200);
+      response.send("User created successfully");
+    }
+  } else {
+    /*If the userData is already registered in the database then this block will execute*/
+    response.status(400);
+    response.send("User already exists");
   }
 });
 
@@ -94,6 +137,8 @@ app.put("/change-password", async (request, response) => {
       const updatePasswordQuery = `UPDATE user 
         SET password = '${hashedPassword}' 
         WHERE username='${username}';`;
+
+      await db.run(updatePasswordQuery);
 
       response.status(200);
       response.send("Password updated");
